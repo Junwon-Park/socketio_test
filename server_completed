@@ -1,0 +1,80 @@
+const path = require('path');
+const http = require('http');
+const express = require('express');
+const socketio = require('socket.io');
+const formatMessage = require('./utils/messages');
+const {
+  userJoin,
+  getCurrentUser,
+  userLeave,
+  getRoomUsers
+} = require('./utils/users');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketio(server);
+
+// Set static folder
+app.use(express.static(path.join(__dirname, 'public')));
+// express에서 제공하는 정적 파일을 읽어오는 미들웨어
+// 절대 경로의 public이라는 디렉토리에 있는 파일을 모두 읽어온다.
+// 미들웨어로 등록했기 때문에 브라우저에서 /에 접속하면 해당 정적 파일을 기본적으로 보여주게 된다.
+
+const botName = 'ChatCord Bot';
+
+// Run when client connects
+// 클라이언트가 실행될 때, io()에서 connection 이벤트를 보내면 실행되는 부분
+io.on('connection', (socket) => {
+  socket.on('joinRoom', ({ username, room }) => {
+    const user = userJoin(socket.id, username, room);
+
+    socket.join(user.room);
+
+    // Welcome current user
+    socket.emit('message', formatMessage(botName, 'Welcome to ChatCord!'));
+
+    // Broadcast when a user connects
+    socket.broadcast
+      .to(user.room)
+      .emit(
+        'message',
+        formatMessage(botName, `${user.username} has joined the chat`)
+      );
+
+    // Send users and room info
+    io.to(user.room).emit('roomUsers', {
+      room: user.room,
+      users: getRoomUsers(user.room)
+    });
+  });
+
+  // Listen for chatMessage
+  socket.on('chatMessage', (msg) => {
+    const user = getCurrentUser(socket.id);
+
+    io.to(user.room).emit('message', formatMessage(user.username, msg));
+  });
+
+  // Runs when client disconnects
+  socket.on('disconnect', () => {
+    const user = userLeave(socket.id);
+
+    if (user) {
+      io.to(user.room).emit(
+        'message',
+        formatMessage(botName, `${user.username} has left the chat`)
+      );
+
+      // Send users and room info
+      io.to(user.room).emit('roomUsers', {
+        room: user.room,
+        users: getRoomUsers(user.room)
+      });
+    }
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
