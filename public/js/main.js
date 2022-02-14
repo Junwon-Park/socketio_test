@@ -5,10 +5,13 @@ const userList = document.getElementById('users');
 
 // Get username and room from URL
 const { username, room } = Qs.parse(location.search, {
-  ignoreQueryPrefix: true,
+  ignoreQueryPrefix: true
 });
 
 const socket = io();
+// io() 생성자의 인자로 값을 주지 않으면 기본 값으로 Default Namespace(Root Path)가 세팅된다.
+// 서버에 Custom Namespace(.of() 사용)가 있다면 io()에 해당 URL을 넣으면 해당 Namespace에
+// Connection이 벤트가 전달된다.
 
 // Join chatroom
 socket.emit('joinRoom', { username, room });
@@ -22,7 +25,7 @@ socket.on('roomUsers', ({ room, users }) => {
 // Message from server
 socket.on('message', (message) => {
   console.log(message);
-  outputMessage(message);
+  outputMessage(message); // 서버에서 { username, text, time } 형태로 보낸다.
 
   // Scroll down
   chatMessages.scrollTop = chatMessages.scrollHeight;

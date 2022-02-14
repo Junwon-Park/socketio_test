@@ -11,21 +11,23 @@ function userJoin(id, username, room) {
 
 // Get current user
 function getCurrentUser(id) {
-  return users.find(user => user.id === id);
+  return users.find((user) => user.id === id);
 }
 
 // User leaves chat
 function userLeave(id) {
-  const index = users.findIndex(user => user.id === id);
+  const index = users.findIndex((user) => user.id === id);
 
   if (index !== -1) {
     return users.splice(index, 1)[0];
+    // splice는 삭제된 데이터가 담긴 배열을 반환하므로 반환한 배열의 0번째 인덱스를 지정해야
+    // 해당 유저 객체가 반환된다.
   }
 }
 
 // Get room users
 function getRoomUsers(room) {
-  return users.filter(user => user.room === room);
+  return users.filter((user) => user.room === room);
 }
 
 module.exports = {
